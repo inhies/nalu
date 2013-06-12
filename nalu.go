@@ -18,8 +18,9 @@ type API struct {
 }
 
 // Starts a STOMP server and returns a new API. Use the Upgrade() method to
-// upgrade an http.Request to a STOMP WebSocket. Set StompOpts to your desired
-// settings for the STOMP server.
+// upgrade an http.Request to a STOMP WebSocket. Set heartbeat to the minimum
+// interval you want to send and receive heartbeats and  StompOpts to your
+// desired settings for the STOMP server.
 func NewAPI(heartbeat time.Duration, StompOpts stomp.Options) (conn *API,
 	err error) {
 
@@ -46,6 +47,14 @@ func NewAPI(heartbeat time.Duration, StompOpts stomp.Options) (conn *API,
 // Upgrades an HTTP connection to a WebSocket and passes the WebSocket to the
 // STOMP server for protocol negotiation.
 func (a *API) Upgrade(w http.ResponseWriter, req *http.Request) {
+	if req.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+	if req.Header.Get("Origin") != "http://"+req.Host {
+		http.Error(w, "Origin not allowed", 403)
+		return
+	}
 	// Create a net.Conn from the websocket
 	conn, err := websocket.NewConn(w, req, req.Header, 4096, 4096)
 	if err != nil {
